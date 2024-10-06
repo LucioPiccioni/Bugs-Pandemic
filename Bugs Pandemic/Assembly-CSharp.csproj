@@ -66,6 +66,7 @@
     <Compile Include="Assets\Enemigos\Movimiento_Enemigo.cs" />
     <Compile Include="Assets\Enemigos\Spawn.cs" />
     <Compile Include="Assets\Scenes\Scripts\Boton_Salir.cs" />
+    <Compile Include="Assets\LogiScript.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
