@@ -10,7 +10,7 @@ public class Boton_Tropas : MonoBehaviour
 
     public int Cost;
 
-    bool active;
+    bool active = true;
     // Referencia al prefab que se va a instanciar
     public GameObject prefab;
 

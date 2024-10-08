@@ -5,28 +5,33 @@ public class Tropa : Unidad
 {
     private void Update()
     {
-        UpdateMovement(Vector2.left); // Movimiento hacia la izquierda
+        // La tropa siempre se mueve hacia la izquierda
+        UpdateMovement(Vector2.left);
     }
 
+    // Sobreescribe el comportamiento de atacar
     protected override IEnumerator Atacar(Unidad unidad)
     {
-        // Activar animación de ataque al iniciar el ataque
-        if (animator != null)
+        if (unidad.tag != gameObject.tag)
         {
-            animator.Play(animAtacar);
-        }
+            if (animator != null)
+            {
+                animator.Play(animAtacar);
+            }
 
-        while (vida > 0 && unidad.vida > 0 && isStopped && isALive && unidad.tag != gameObject.tag)
-        {
-            unidad.RecibirDaño(ataque);
-            RecibirDaño(unidad.ataque);
-            yield return new WaitForSeconds(1.0f);
-        }
+            // Atacar mientras ambas unidades estén vivas y se esté tocando un enemigo
+            while (vida > 0 && unidad.vida > 0 && isTouchingEnemy && isALive)
+            {
+                unidad.RecibirDaño(ataque);
+                RecibirDaño(unidad.ataque);
+                yield return new WaitForSeconds(1.0f);
+            }
 
-        // Al terminar el ataque, cambiar a la animación de quieto
-        if (animator != null && vida > 0)
-        {
-            animator.Play(animQuieto);
+            // Si el enemigo ha muerto o no estamos tocando un enemigo, se reproducirá la animación de estar quieto
+            if (animator != null && vida > 0)
+            {
+                animator.Play(animQuieto);
+            }
         }
     }
 }

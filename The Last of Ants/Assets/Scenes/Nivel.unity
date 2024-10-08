@@ -2504,7 +2504,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   coldoown: 0
-  Cost: 0
+  Cost: 5
   prefab: {fileID: 3738787942264649780, guid: 9b668447c1130b14aba6e4dc7c627d3b, type: 3}
   spawnPoint: {fileID: 1545668037}
   spawnButton: {fileID: 2006447241}

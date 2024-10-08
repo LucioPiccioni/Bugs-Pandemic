@@ -14,8 +14,6 @@ public class LogiScript : MonoBehaviour
     int showCurrency;
     float timer = 0;
 
-    bool pause = false;
-
     private enum MatchResult
     {
         None,
@@ -40,10 +38,11 @@ public class LogiScript : MonoBehaviour
         {
             CheckGameStatus();
 
+            UpdateCurrencyText();
+
             if (timer >= 2)
             {
                 currency += 10;
-                UpdateCurrencyText();
                 timer = 0;
             }
             else

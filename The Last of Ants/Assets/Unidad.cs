@@ -3,17 +3,15 @@ using UnityEngine;
 
 public class Unidad : MonoBehaviour
 {
-    public float speed = 2.0f; 
-    public int vida = 3; 
-    public int ataque = 1; 
-    protected bool isStopped = false; 
-    protected bool attackingTower = false; 
+    public float speed = 2.0f;
+    public int vida = 3;
+    public int ataque = 1;
+    protected bool isTouchingTower = false;
+    protected bool isTouchingEnemy = false;
     protected bool isALive = true;
-    protected bool isColliding = false;
 
     public float repulsionForce = 5.0f;
     public float minDistance = 0.5f;
-
 
     public Animator animator;
     public string animCaminar = "Caminar";
@@ -21,19 +19,21 @@ public class Unidad : MonoBehaviour
     public string animQuieto = "Quieto";
 
     string enemyTower = "";
+    string rivalTag = "";
 
     private void Start()
     {
         if (gameObject.tag == "Tropa")
         {
             enemyTower = "EnemyTower";
+            rivalTag = "Enemigo";
         }
         else if (gameObject.tag == "Enemigo")
         {
             enemyTower = "PlayerTower";
+            rivalTag = "Tropa";
         }
 
-        // Iniciar con animación de caminar
         if (animator != null)
         {
             animator.Play(animCaminar);
@@ -42,11 +42,9 @@ public class Unidad : MonoBehaviour
 
     protected virtual void UpdateMovement(Vector2 direction)
     {
-        if (!isStopped && !attackingTower)
+        if (!isTouchingTower && !isTouchingEnemy)
         {
             transform.Translate(direction * speed * Time.deltaTime);
-
-            // Activar animación de caminar si la unidad se está moviendo
             if (animator != null)
             {
                 animator.Play(animCaminar);
@@ -54,7 +52,6 @@ public class Unidad : MonoBehaviour
         }
         else
         {
-            // Activar animación de estar quieto si no está atacando ni moviéndose
             if (animator != null && !IsAttacking())
             {
                 animator.Play(animQuieto);
@@ -64,62 +61,76 @@ public class Unidad : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("Enemigo"))
+        if (collision.gameObject.CompareTag(rivalTag))
         {
-            isStopped = true; // Detener la tropa
-            StartCoroutine(Atacar(collision.GetComponent<Unidad>())); // Usar la clase base
-        }
-        else if (collision.gameObject.CompareTag("Tropa"))
-        {
-            isStopped = true; // Detener si colisiona con otra tropa
+            isTouchingEnemy = true;
+            StartCoroutine(Atacar(collision.GetComponent<Unidad>()));
         }
         else if (collision.gameObject.CompareTag(enemyTower))
         {
-            isStopped = true;
-            attackingTower = true;
+            isTouchingTower = true;
             StartCoroutine(AtacarTower(collision.GetComponent<Tower>()));
         }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("Enemigo") ||
-            collision.gameObject.CompareTag(enemyTower) ||
-            collision.gameObject.CompareTag("Tropa"))
+        if (collision.gameObject.CompareTag(rivalTag))
         {
-            isStopped = false;
-            attackingTower = false;
+            isTouchingEnemy = false;
+        }
+        else if (collision.gameObject.CompareTag(enemyTower))
+        {
+            isTouchingTower = false;
         }
     }
 
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag(gameObject.tag) && !isTouchingEnemy && !isTouchingTower)
+        {
+            Vector2 direction = transform.position - collision.transform.position;
+            float distance = direction.magnitude;
+
+            if (distance < minDistance)
+            {
+                Vector2 repulsion = direction.normalized * repulsionForce * Time.deltaTime;
+                transform.Translate(repulsion);
+            }
+        }
+    }
+
+
     protected virtual IEnumerator Atacar(Unidad unidad)
     {
-        // Activar animación de ataque al iniciar el ataque
-        if (animator != null)
+        if (unidad.gameObject.tag != gameObject.tag)
         {
-            animator.Play(animAtacar);
-        }
+            if (animator != null)
+            {
+                animator.Play(animAtacar);
+            }
 
-        while (vida > 0 && unidad.vida > 0 && isStopped)
-        {
-            unidad.RecibirDaño(ataque);
-            RecibirDaño(unidad.ataque);
-            yield return new WaitForSeconds(1.0f);
-        }
+            while (vida > 0 && unidad.vida > 0 && isTouchingEnemy)
+            {
+                unidad.RecibirDaño(ataque);
+                RecibirDaño(unidad.ataque);
+                yield return new WaitForSeconds(1.0f);
+            }
 
-        // Al terminar el ataque, cambiar a la animación de quieto
-        if (animator != null && vida > 0)
-        {
-            animator.Play(animQuieto);
-        }
+            if (unidad.vida <= 0)
+            {
+                isTouchingEnemy = false;
+            }
 
-        Debug.Log($"{gameObject.name} ha muerto.");
-        Destroy(gameObject);
+            if (animator != null && vida > 0)
+            {
+                animator.Play(animQuieto);
+            }
+        }
     }
 
     protected virtual IEnumerator AtacarTower(Tower tower)
     {
-        // Activar animación de ataque al iniciar el ataque
         if (animator != null)
         {
             animator.Play(animAtacar);
@@ -131,7 +142,11 @@ public class Unidad : MonoBehaviour
             yield return new WaitForSeconds(1.0f);
         }
 
-        // Al terminar el ataque, cambiar a la animación de quieto
+        if (tower == null)
+        {
+            isTouchingTower = false;
+        }
+
         if (animator != null && vida > 0)
         {
             animator.Play(animQuieto);
@@ -149,11 +164,16 @@ public class Unidad : MonoBehaviour
         {
             isALive = false;
             Debug.Log($"{gameObject.name} ha muerto.");
-            Destroy(gameObject);
+            StartCoroutine(HandleDeath());
         }
     }
 
-    // Método para verificar si la unidad está atacando
+    private IEnumerator HandleDeath()
+    {
+        yield return new WaitForSeconds(0.1f);
+        Destroy(gameObject);
+    }
+
     private bool IsAttacking()
     {
         return animator.GetCurrentAnimatorStateInfo(0).IsName(animAtacar);
